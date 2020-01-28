@@ -394,12 +394,30 @@ extension SwipeController: SwipeActionsViewDelegate {
     
     func perform(action: SwipeAction, hide: Bool) {
         guard let indexPath = swipeable?.indexPath else { return }
-
+        guard let swipeable = self.swipeable, let _ = self.actionsContainerView else { return }
+        guard let actionsView = swipeable.actionsView else { return }
+        
         if hide {
             hideSwipe(animated: true)
         }
 
         action.handler?(action, indexPath)
+        let newCenter = swipeable.bounds.midX - (swipeable.bounds.width + actionsView.minimumButtonWidth) * actionsView.orientation.scale
+
+        action.completionHandler = { [weak self] style in
+            guard let `self` = self else { return }
+            action.completionHandler = nil
+            
+            switch style {
+            case .delete:
+                self.delegate?.swipeController(self, didDeleteSwipeableAt: indexPath)
+                
+            case .reset:
+                self.hideSwipe(animated: true)
+            }
+            
+            self.animate(duration: 0.3, toOffset: newCenter)
+        }
     }
     
     func performFillAction(action: SwipeAction, fillOption: SwipeExpansionStyle.FillOptions) {
